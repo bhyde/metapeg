@@ -1,0 +1,18 @@
+To use the parser generator first load the library code:
+
+CL-USER> (load "libmetapeg.lisp")
+
+then call parse with your PEG grammar as the first argument:
+
+CL-USER> (parse "mypeg.peg" "metapeg.lisp")
+
+the lisp code for the resulting parser will be returned.
+
+You can save this code to a file:
+
+CL-USER> (write-parser-to-file (parse "mypeg.peg" "metapeg.lisp") "mypeg.lisp")
+
+To use your parser, call the parse function again:
+
+CL-USER> (parse "input-file" "mypeg.lisp")
+
