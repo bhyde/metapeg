@@ -47,7 +47,9 @@
 ; Utility functions
 ; --------------------
 
-(defun make-name (string) (intern (concatenate 'string "parse_" string) (find-package :cl-user)))
+(defun make-name (string)
+  (intern (concatenate 'string "parse_" string)
+          (symbol-package 'this-package)))
 
 
 (defun fix-escapes2 (char-list)
@@ -71,7 +73,7 @@
 (defun fix-escapes (list) (fix-escapes2 list))
 ; filter out the first part of pair, useful for patterns where we specify a negative match (eg (!"x" .)*)
 (defun zip-second (pair-list)
-  (loop for (fst snd) in pair-list collect snd))
+  (loop for x in pair-list collect (second x)))
 
 (defmacro build-parser-function (name parser)
   `(let* ((*context* (clone-ctx *context* ,name))
@@ -209,7 +211,7 @@
 	      (let ((*context* (clone-ctx *context* 'mp_string)))
 		(succeed *context* string offset (+ offset (length string))))
 	      (fail))
-	(SB-KERNEL:BOUNDING-INDICES-BAD-ERROR (e) (fail)))))
+	(#+sbcl SB-KERNEL:BOUNDING-INDICES-BAD-ERROR #+ccl simple-error () (fail)))))
 
 (defun match-char (char-list)
   #'(lambda (offset)
@@ -225,26 +227,33 @@
 		  
 ;	    (format t "match char dropped through ~S~%" char-list)
 	    (fail))
-	(SB-KERNEL:BOUNDING-INDICES-BAD-ERROR (e)
-	  
-		 (fail))
-	(SB-KERNEL::INDEX-TOO-LARGE-ERROR (e1)
-	  (fail)))))
+	(#+sbcl SB-KERNEL:BOUNDING-INDICES-BAD-ERROR #+ccl simple-error ()
+                (fail))
+	(#+sbcl SB-KERNEL::INDEX-TOO-LARGE-ERROR #+ccl simple-error ()
+                (fail))
+        #+ccl(CCL::SEQUENCE-INDEX-TYPE-ERROR ()
+               (fail)))))
 
 
 (defun match-any-char (ignored)
+  (declare (ignore ignored))
   #'(lambda (offset)
       (handler-case
 	  (succeed (clone-ctx *context* 'mp_anychar) (elt *input* offset) offset (+ offset 1))
-	(SB-KERNEL:BOUNDING-INDICES-BAD-ERROR (e)
-	  (fail)))))
+	(#+sbcl SB-KERNEL:BOUNDING-INDICES-BAD-ERROR #+ccl simple-error ()
+                (fail))
+        #+ccl(CCL::SEQUENCE-INDEX-TYPE-ERROR ()
+               (fail)))))
 
 (defun match-any-char2 (ignored)
+  (declare (ignore ignored))
   #'(lambda (offset)
       (handler-case
 	  (succeed (clone-ctx *context* 'mp_anychar) (elt *input* offset) offset (+ offset 1))
-	(SB-KERNEL:BOUNDING-INDICES-BAD-ERROR (e)
-	  (fail)))))
+	(#+sbcl SB-KERNEL:BOUNDING-INDICES-BAD-ERROR #+ccl simple-error ()
+                (fail))
+        #+ccl(CCL::SEQUENCE-INDEX-TYPE-ERROR ()
+               (fail)))))
 
 (defun negate (parser)
   #'(lambda (offset)
@@ -288,7 +297,7 @@
 (let ((counter 0))
   (defun gen-action-name ()
     (incf counter)
-    (intern  (format nil "metapeg_action~A" counter))))
+    (make-name (format nil "METAPEG-ACTION~A" counter))))
 
 (defvar *cached-parser-file-name* nil)
 (defvar *cached-parser-file-write-date* nil)
@@ -332,13 +341,8 @@
 ;			       (format *error-output* "data is ~s~%" data)
 			       (handler-case
 				   (return-from transform (funcall (third el) data))
-				 (undefined-function ()
-				   (progn  (format *error-output* "missing definition for ~A~%" (third el))
+				 (undefined-function (e)
+				   (progn  (format *error-output* "missing definition for ~S ~A~%" (third el) e)
 					   tree)))))
 		       data)))
 	  tree)))
-
-
-
-
-  
