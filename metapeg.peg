@@ -1,0 +1,48 @@
+program <- ws* rule+ {
+`((in-package :metapeg)	
+ (declaim (optimize (speed 3) (safety 0) (debug 0)))
+  (defun generated-parser ()
+	(let ((*context* (make-instance 'context :start-index 0)))
+	   (funcall (|parse_program|) 0)))
+	,@(second data))
+}
+
+rule <- id ws* "<-" ws* ordered-expr-list ws_or_nl* { `(defun ,(make-name (first data)) ()
+	 (lambda (offset)
+	  (build-parser-function ,(first data) ,(fifth data)))) }
+
+ordered-expr-list <- expr-list ws* "/" ws* ordered-expr-list  { 
+(let ((tail (fifth data)))
+	(if (equal (first tail) 'either)
+	    `(either ,(first data) ,@(rest tail))
+	    `(either ,(first data) ,(fifth data))))
+} / expr-list { (first data) }
+expr-list <- expr (ws+ expr-list)* { (if (or (equal (second data) "") (null (second data)))
+					     (first data)
+					     (let ((tail (second (first (second data)))))
+						  (if (equal (first tail) 'seq)
+		   			              `(seq ,(first data) ,@(rest tail))
+		   			              `(seq ,(first data) ,tail)))) }
+				 
+expr <-  simple-expr "*" { `(many ,(first data)) } / simple-expr "+" { `(many1 ,(first data)) } / simple-expr "?" { `(optional ,(first data)) } / simple-expr { (first data) }
+simple-expr <- string { (first data) } / action / "&" simple-expr { `(follow ,(second data)) } / "@" id { `(match ,(second data)) } / id { 
+	`(,(make-name (first data)))
+} / bracketed-rule  { (first data) } / "!." / "!" expr { `(negate ,(second data)) } / character-class { (first data) } / "." { `(match-any-char 'dummy) } 
+bracketed-rule <- "()" / "(" ws* ordered-expr-list ws* ")" { (third data) }
+
+id <- [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_]+ { (char-list-to-string (first data)) }
+character-class <- "[" (not_right_bracket .)+ "]" { `(match-char ',(fix-escapes2 (zip-second (second data)))) }
+string <- [\"] (![\"] .)* [\"] { `(match-string ,(char-list-to-string (zip-second (second data)))) }
+action <- [\{] (![\}] .)* [\}] { 
+	(let ((action-name (gen-action-name)))
+	 (push (list action-name (char-list-to-string (fix-escapes (zip-second (second data))))) *actions*)
+	 `(list 'action nil ',action-name))
+}
+
+not_right_bracket <- !"]" 
+ws <- [ \t]
+nl <- [\n]
+ws_or_nl <- ws/nl
+
+
+
