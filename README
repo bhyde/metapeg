@@ -1,3 +1,5 @@
+This is a PEG or packrat parser forked from the Common Lisp one written by John Leuner; see <http://www.cliki.net/metapeg>.
+
 To use the parser generator first load the library code:
 
 CL-USER> (load "libmetapeg.lisp")

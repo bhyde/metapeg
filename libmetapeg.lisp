@@ -75,12 +75,23 @@
 (defun zip-second (pair-list)
   (loop for x in pair-list collect (second x)))
 
+(defvar *build-with-tracing* t)
+
 (defmacro build-parser-function (name parser)
-  `(let* ((*context* (clone-ctx *context* ,name))
-	  (result (funcall ,parser offset)))
-    (if (ctx-failed-p result)
-	(fail)
-	(succeed *context* (value result) (start-index result) (end-index result)))))
+  (if *build-with-tracing*
+      `(let* ((*context* (clone-ctx *context* ,name))
+              (result (funcall ,parser offset)))
+         (format t "~&~vT> ~A at ~D" offset ',name offset)
+         (prog1
+             (if (ctx-failed-p result)
+                 (fail)
+                 (succeed *context* (value result) (start-index result) (end-index result)))
+           (format t "~&~vT<~A ~A" offset ',name (if (ctx-failed-p result) ":<" ":)"))))
+      `(let* ((*context* (clone-ctx *context* ,name))
+              (result (funcall ,parser offset)))
+         (if (ctx-failed-p result)
+             (fail)
+             (succeed *context* (value result) (start-index result) (end-index result))))))
 
 (defun make-call-rule-closure (rule)
   `#'(lambda (offset)
@@ -315,6 +326,7 @@
 	  'dont-load-it-again
 	  )
 	(progn
+          (setf *cached-parser-file-name* nil) ; in moment the cache breaks.
 	  (load parser-file)
 	  (setf *cached-parser-file-name* parser-file)
 	  (setf *cached-parser-file-write-date* (file-write-date parser-file))
