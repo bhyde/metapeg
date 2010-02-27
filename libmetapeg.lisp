@@ -308,7 +308,7 @@
 (defvar *action-name-counter* 0)
 
 (defun gen-action-name ()
-  (intern (format nil "metapeg_action~A" (incf *action-name-counter*))
+  (intern (format nil "METAPEG-ACTION~A" (incf *action-name-counter*))
           (symbol-package 'this-package)))
 
 (defvar *cached-parser-file-name* nil)
