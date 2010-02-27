@@ -75,7 +75,7 @@
 (defun zip-second (pair-list)
   (loop for x in pair-list collect (second x)))
 
-(defvar *build-with-tracing* t)
+(defvar *build-with-tracing* nil)
 
 (defmacro build-parser-function (name parser)
   (if *build-with-tracing*
@@ -305,10 +305,11 @@
       (read-sequence s file)
       s)))
 
-(let ((counter 0))
-  (defun gen-action-name ()
-    (incf counter)
-    (make-name (format nil "METAPEG-ACTION~A" counter))))
+(defvar *action-name-counter* 0)
+
+(defun gen-action-name ()
+  (intern (format nil "metapeg_action~A" (incf *action-name-counter*))
+          (symbol-package 'this-package)))
 
 (defvar *cached-parser-file-name* nil)
 (defvar *cached-parser-file-write-date* nil)
@@ -358,3 +359,12 @@
 					   tree)))))
 		       data)))
 	  tree)))
+
+#|
+
+;;; Example of how to rebootstrap the metapeg parser.
+
+(let ((*package* (find-package "METAPEG")) (metapeg::*action-name-counter* 319))
+  (metapeg:create-parser "/tmp/metapeg.lisp" "metapeg.peg" "metapeg.lisp"))
+
+|#
