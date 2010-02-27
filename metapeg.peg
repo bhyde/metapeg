@@ -27,7 +27,7 @@ expr-list <- expr (ws+ expr-list)* { (if (or (equal (second data) "") (null (sec
 expr <-  simple-expr "*" { `(many ,(first data)) } / simple-expr "+" { `(many1 ,(first data)) } / simple-expr "?" { `(optional ,(first data)) } / simple-expr { (first data) }
 simple-expr <- string { (first data) } / action / "&" simple-expr { `(follow ,(second data)) } / "@" id { `(match ,(second data)) } / id { 
 	`(,(make-name (first data)))
-} / bracketed-rule  { (first data) } / "!." / "!" expr { `(negate ,(second data)) } / character-class { (first data) } / "." { `(match-any-char 'dummy) } 
+} / bracketed-rule  { (first data) } / "!." / "!" expr { `(negate ,(second data)) } / character-class { (first data) } / "." { (declare (ignore data)) `(match-any-char 'dummy) } 
 bracketed-rule <- "()" / "(" ws* ordered-expr-list ws* ")" { (third data) }
 
 id <- [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_]+ { (char-list-to-string (first data)) }
