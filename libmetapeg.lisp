@@ -311,27 +311,36 @@
   (intern (format nil "METAPEG-ACTION~A" (incf *action-name-counter*))
           (symbol-package 'this-package)))
 
-(defvar *cached-parser-file-name* nil)
-(defvar *cached-parser-file-write-date* nil)
-; returns the parse tree and the content of the *actions* variable
 (defun parse (input-file parser-file)
+  "Parse the input-file given the parser-file via parse-string."
   (let ((input (read-file input-file)))
     (parse-string input parser-file)))
 
+(defvar *cached-parser-file-name* nil)
+
+(defvar *cached-parser-file-write-date* nil)
+
+(defun load-parser-if-necessary (parser-file)
+  "Load the parser defined in file unless it happens to be the one we last loaded."
+  (cond
+    ((and (equal *cached-parser-file-name* parser-file) ; this breaks if the user changes directories
+          (equal *cached-parser-file-write-date* (file-write-date parser-file)))
+     'already-loaded)
+    (t
+     (setf *cached-parser-file-name* nil) ; fearing error invalidate the cache
+     (load parser-file)
+     (setf *cached-parser-file-name* parser-file)
+     (setf *cached-parser-file-write-date* (file-write-date parser-file)))))
+
 (defun parse-string (input parser-file)
+  "Wrapper for parse-string-using-latest-parser, but first load the parser in parser-file if necessary."
+  (load-parser-if-necessary parser-file)
+  (parse-string-using-latest-parser input))
+
+(defun parse-string-using-latest-parser (input)
+  "Return two values; the result of the parse and what ever accumulates in *actions*"
   (let ((*input* input)
 	(*actions* nil))
-    (if (and (equal *cached-parser-file-name* parser-file) ; this breaks if the user changes directories
-	     (equal *cached-parser-file-write-date* (file-write-date parser-file)))
-	(progn
-	  'dont-load-it-again
-	  )
-	(progn
-          (setf *cached-parser-file-name* nil) ; in moment the cache breaks.
-	  (load parser-file)
-	  (setf *cached-parser-file-name* parser-file)
-	  (setf *cached-parser-file-write-date* (file-write-date parser-file))
-	  ))
     (let ((result (generated-parser)))
       (if (not (ctx-failed-p result))
 	  (if (= (length *input*)  (end-index result))
@@ -362,7 +371,8 @@
 
 #|
 
-;;; Example of how to rebootstrap the metapeg parser.
+;;; Example of how to rebootstrap the metapeg parser.  Note that binding the metapeg::*action-name-counter*
+;;; helps to keep the source control diffs under control.
 
 (let ((*package* (find-package "METAPEG")) (metapeg::*action-name-counter* 319))
   (metapeg:create-parser "/tmp/metapeg.lisp" "metapeg.peg" "metapeg.lisp"))
