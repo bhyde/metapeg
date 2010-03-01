@@ -1,11 +1,12 @@
-program <- ws* rule+ {
+;;; A PEG grammar for PEG grammars
+program <- ws_or_nl* rule+ {
 `((in-package :metapeg)	
  (declaim (optimize (speed 3) (safety 0) (debug 0)))
   (defun generated-parser ()
 	(let ((*context* (make-instance 'context :start-index 0)))
 	   (funcall (|parse_program|) 0)))
 	,@(second data))
-}
+} /* I suspect that action is wrong. */
 
 rule <- id ws* "<-" ws* ordered-expr-list ws_or_nl* { `(defun ,(make-name (first data)) ()
 	 (lambda (offset)
@@ -39,9 +40,13 @@ action <- [\{] (![\}] .)* [\}] {
 	 `(list 'action nil ',action-name))
 }
 
+
 not_right_bracket <- !"]" 
-ws <- [ \t]
+semi_comment <- ";" (![\n] .)*
+inline_comment <- "/*" (!"*/" .)* "*/"
+raw_ws <- [ \t]
 nl <- [\n]
+ws <- raw_ws/inline_comment/semi_comment
 ws_or_nl <- ws/nl
 
 

@@ -7,7 +7,7 @@
   (LAMBDA (OFFSET)
     (BUILD-PARSER-FUNCTION
       "program"
-      (SEQ (MANY (|parse_ws|))
+      (SEQ (MANY (|parse_ws_or_nl|))
            (MANY1 (|parse_rule|))
            (LIST 'ACTION NIL 'METAPEG-ACTION320)))))
 (DEFUN |parse_rule| ()
@@ -125,10 +125,31 @@
 (DEFUN |parse_not_right_bracket| ()
   (LAMBDA (OFFSET)
     (BUILD-PARSER-FUNCTION "not_right_bracket" (NEGATE (MATCH-STRING "]")))))
-(DEFUN |parse_ws| ()
-  (LAMBDA (OFFSET) (BUILD-PARSER-FUNCTION "ws" (MATCH-CHAR '(#\  #\Tab)))))
+(DEFUN |parse_semi_comment| ()
+  (LAMBDA (OFFSET)
+    (BUILD-PARSER-FUNCTION
+      "semi_comment"
+      (SEQ (MATCH-STRING ";")
+           (MANY (SEQ (NEGATE (MATCH-CHAR '(#\Newline)))
+                      (MATCH-ANY-CHAR 'DUMMY)))))))
+(DEFUN |parse_inline_comment| ()
+  (LAMBDA (OFFSET)
+    (BUILD-PARSER-FUNCTION
+      "inline_comment"
+      (SEQ (MATCH-STRING "/*")
+           (MANY (SEQ (NEGATE (MATCH-STRING "*/")) (MATCH-ANY-CHAR 'DUMMY)))
+           (MATCH-STRING "*/")))))
+(DEFUN |parse_raw_ws| ()
+  (LAMBDA (OFFSET) (BUILD-PARSER-FUNCTION "raw_ws" (MATCH-CHAR '(#\  #\Tab)))))
 (DEFUN |parse_nl| ()
   (LAMBDA (OFFSET) (BUILD-PARSER-FUNCTION "nl" (MATCH-CHAR '(#\Newline)))))
+(DEFUN |parse_ws| ()
+  (LAMBDA (OFFSET)
+    (BUILD-PARSER-FUNCTION
+      "ws"
+      (EITHER (|parse_raw_ws|)
+              (|parse_inline_comment|)
+              (|parse_semi_comment|)))))
 (DEFUN |parse_ws_or_nl| ()
   (LAMBDA (OFFSET)
     (BUILD-PARSER-FUNCTION "ws_or_nl" (EITHER (|parse_ws|) (|parse_nl|)))))
