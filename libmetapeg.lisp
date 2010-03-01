@@ -374,7 +374,8 @@
 ;;; Example of how to rebootstrap the metapeg parser.  Note that binding the metapeg::*action-name-counter*
 ;;; helps to keep the source control diffs under control.
 
-(let ((*package* (find-package "METAPEG")) (metapeg::*action-name-counter* 319))
+(let ((*package* (find-package "METAPEG")) 
+      (metapeg::*action-name-counter* 319))
   (metapeg:create-parser "/tmp/metapeg.lisp" "metapeg.peg" "metapeg.lisp"))
 
 |#
