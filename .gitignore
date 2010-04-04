@@ -1,1 +1,4 @@
+*.dx32fsl
 *.dx64fsl
+*.fasl
+.clbuild-skip-update
