@@ -1,5 +1,6 @@
 (in-package :metapeg)
-(declaim (optimize (speed 3) (safety 0) (debug 0)))
+;(declaim (optimize (speed 3) (safety 0) (debug 0)))
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 ; Global variables used during the parse
 ; --------------------
@@ -302,8 +303,9 @@
 (defun read-file (filename)
   (with-open-file (file filename :direction :input)
     (let ((s (make-string (file-length file))))
-      (read-sequence s file)
-      s)))
+      ;; (declare (dynamic-extent s)) ; stack alloc is unlikely
+      ;; note characters are not bytes
+      (subseq s  0 (read-sequence s file)))))
 
 (defvar *action-name-counter* 0)
 
