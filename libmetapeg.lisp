@@ -329,10 +329,13 @@
           (equal *cached-parser-file-write-date* (file-write-date parser-file)))
      'already-loaded)
     (t
-     (setf *cached-parser-file-name* nil) ; fearing error invalidate the cache
-     (load parser-file)
-     (setf *cached-parser-file-name* parser-file)
-     (setf *cached-parser-file-write-date* (file-write-date parser-file)))))
+     (load-parser parser-file))))
+
+(defun load-parser (&optional (parser-file *cached-parser-file-name*))
+  (setf *cached-parser-file-name* nil) ; fearing error invalidate the cache
+  (load parser-file)
+  (setf *cached-parser-file-name* parser-file)
+  (setf *cached-parser-file-write-date* (file-write-date parser-file)))
 
 (defun parse-string (input parser-file)
   "Wrapper for parse-string-using-latest-parser, but first load the parser in parser-file if necessary."
